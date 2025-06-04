@@ -1,1 +1,0 @@
-        inputs = processor(images=image, text=prompt, return_tensors="pt").to(model.device)
