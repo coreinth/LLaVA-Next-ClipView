@@ -31,7 +31,7 @@ def initialize_models():
     return processor, model
 
 # Keyframe extraction
-def extract_keyframes(video_path, output_dir="keyframes"):
+def extract_keyframes(video_path, output_dir="keyframes @ 0.35"):
     os.makedirs(output_dir, exist_ok=True)
     
     project_root = Path(__file__).parent
@@ -39,24 +39,15 @@ def extract_keyframes(video_path, output_dir="keyframes"):
     
     if not ffmpeg_path.exists():
         raise FileNotFoundError(f"FFmpeg not found at {ffmpeg_path}")
-    
+
     subprocess.run([
         str(ffmpeg_path),
         "-i", video_path,
-        "-vf", "select='eq(pict_type,I)'",
-        "-vsync", "vfr",
-        f"{output_dir}/keyframe_%03d.png"
+        "-vf", "select='(gt(scene,0.35))'",
+        "-vsync", "0",
+        "-frame_pts", "1",
+        f"{output_dir}/frame_%04d.png"
     ], check=True)
-    
-    # Scene detection instead of I-frames:
-    #     subprocess.run([
-    #         "ffmpeg",
-    #         "-i", video_path,
-    #         "-vf", "select='or(eq(pict_type,I),gt(scene,0.3))'",  # I-frames + scene changes
-    #         "-vsync", "0",
-    #         "-frame_pts", "1",  # Number frames sequentially
-    #         f"{output_dir}/frame_%04d.png"
-    #     ], check=True)
     
     return sorted([str(p) for p in Path(output_dir).glob("keyframe_*.png")])
 
@@ -108,10 +99,10 @@ def save_results(results, output_file="descriptions.txt"):
 
 # Main
 def main():
-    processor, model = initialize_models()
-    frame_paths = extract_keyframes("test.mp4")
-    results = process_all_frames(frame_paths, processor, model)
-    save_results(results)
+    # processor, model = initialize_models()
+    frame_paths = extract_keyframes("test2.mp4")
+    #results = process_all_frames(frame_paths, processor, model)
+    # save_results(results)
     print(f"Completed! Saved {len([r for r in results if r[1]])} descriptions")
 
 if __name__ == "__main__":
