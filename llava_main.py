@@ -4,6 +4,8 @@ import torch
 import subprocess
 import os
 from pathlib import Path
+import gc
+import shutil
 
 # Model Initialization
 def initialize_models():
@@ -31,9 +33,9 @@ def extract_representative_frames(video_path, output_dir="segments"):
     os.makedirs(output_dir, exist_ok=True)
     
     project_root = Path(__file__).parent
-    ffmpeg_path = project_root / "ffmpeg" / "bin" / "ffmpeg.exe"
+    ffmpeg_path = shutil.which("ffmpeg") or project_root / "ffmpeg" / "ffmpeg.exe"
     
-    if not ffmpeg_path.exists():
+    if not ffmpeg_path or not ffmpeg_path.exists():
         raise FileNotFoundError(f"FFmpeg not found at {ffmpeg_path}")
 
     subprocess.run([
@@ -86,11 +88,21 @@ def llava_main():
     frames_per_segment = extract_representative_frames(video_path)
 
     results = []
-    for i, frame_path in enumerate(frames_per_segment):
-        print(f"Processing minute {i}...")
-        description = describe_frames_group([frame_path], processor, model)
-        if description:
-            results.append((i, description))
+    batch_size = 4
+
+    for i in range(0, len(frames_per_segment), batch_size):
+        batch_paths = frames_per_segment[i:i + batch_size]
+        print(f"Processing minutes {i} to {i + len(batch_paths) - 1}...")
+
+        descriptions = describe_frames_group(batch_paths, processor, model)
+
+        for j, description in enumerate(descriptions):
+            if description:
+                results.append((i + j, description))
+
+        del batch_paths, descriptions
+        torch.cuda.empty_cache()
+        gc.collect()
 
     save_results(results)
     print(f"Completed! Generated descriptions for {len(results)} minutes.")

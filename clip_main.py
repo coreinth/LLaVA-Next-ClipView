@@ -87,43 +87,46 @@ def combine_segments(current_segments, combine_segments):
 
   return current_segments
 
-def analyze_thresholds(image_features, ground_truth, thresholds=np.linspace(0.7, 0.95, 20)):
-    segment_counts = []
-    segment_frequency = np.zeros(len(image_features))  # Tracks how often each segment appears
+def analyze_thresholds(image_features, ground_truth, 
+                      cosine_thresholds=np.linspace(0.7, 0.95, 20), 
+                      euclid_thresholds=np.linspace(0.1, 0.5, 5)):
+    for euclid_thresh in euclid_thresholds:
+        print(f"\n--- Euclidean Distance Threshold: {euclid_thresh:.2f} ---")
+        segment_counts = []
+        segment_frequency = np.zeros(len(image_features))
+        for threshold in cosine_thresholds:
+            temp_similar_segments = []
+            for i in range(len(image_features) - 1):
+                vec1 = image_features[i]
+                vec2 = image_features[i + 1]
+                cos_sim = torch_func.cosine_similarity(vec1.unsqueeze(0), vec2.unsqueeze(0)).item()
+                euclid_dist = torch.dist(vec1, vec2).item()
+                if cos_sim > threshold and euclid_dist < euclid_thresh:
+                    temp_similar_segments.append([i, i + 1])
+                    segment_frequency[i] += 1
+                    segment_frequency[i + 1] += 1
 
-    for threshold in thresholds:
-        temp_similar_segments = []
-        for i in range(len(image_features) - 1):
-            vec1 = image_features[i]
-            vec2 = image_features[i + 1]
-            cos_sim = torch_func.cosine_similarity(vec1.unsqueeze(0), vec2.unsqueeze(0)).item()
-            if cos_sim > threshold:
-                temp_similar_segments.append([i, i + 1])
-                segment_frequency[i] += 1
-                segment_frequency[i + 1] += 1
+            temp_segments = [[i * 60, (i + 1) * 60] for i in range(len(image_features))]
+            merged = combine_segments(temp_segments.copy(), temp_similar_segments)
+            print(f"\nCosine threshold: {threshold:.2f}")
+            segment_counts.append(len(merged))
 
-        temp_segments = [[i * 60, (i + 1) * 60] for i in range(len(image_features))]
-        merged = combine_segments(temp_segments.copy(), temp_similar_segments)
-        print(f"\nCosine threshold: {threshold:.2f}")
-        segment_counts.append(len(merged))
+            matches = 0
+            ious = []
+            for gt in ground_truth:
+                best_iou = 0
+                for merged_seg in merged:
+                    iou = calculate_iou(gt, merged_seg)
+                    best_iou = max(best_iou, iou)
+                ious.append(best_iou)
+                if best_iou > 0.5:
+                    matches += 1
 
-        matches = 0
-        ious = []
-        for gt in ground_truth:
-            best_iou = 0
-            for merged_seg in merged:
-                iou = calculate_iou(gt, merged_seg)
-                best_iou = max(best_iou, iou)
-            ious.append(best_iou)
-            if best_iou > 0.5:
-                matches += 1
-
-        accuracy = round((matches / len(ground_truth)), 2)
-        threshold = round(threshold, 2)
-        cosine_accuracy.setdefault(threshold, []).append(accuracy)
-        print(f"IoUs: {[f'{iou:.2f}' for iou in ious]}")
-        # print(f"Matched Segments: {matches}/{len(ground_truth)}")
-        print(f"Accuracy: {accuracy:.2f}")
+            accuracy = round((matches / len(ground_truth)), 2)
+            threshold_rounded = round(threshold, 2)
+            cosine_accuracy.setdefault((threshold_rounded, round(euclid_thresh, 2)), []).append(accuracy)
+            print(f"IoUs: {[f'{iou:.2f}' for iou in ious]}")
+            print(f"Accuracy: {accuracy:.2f}")
 
     # # Plot: Threshold vs Final Segment Count
     # plt.figure(figsize=(10, 4))
