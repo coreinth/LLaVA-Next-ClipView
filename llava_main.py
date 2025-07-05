@@ -9,18 +9,21 @@ import shutil
 
 # Model Initialization
 def initialize_models():
+    
+    model_id = "llava-hf/llava-1.5-7b-hf"
+    
     processor = LlavaNextProcessor.from_pretrained(
-        "llava-hf/llava-v1.6-mistral-7b-hf",
+        model_id,
         use_fast=True
     )
     
     model = LlavaNextForConditionalGeneration.from_pretrained(
-        "llava-hf/llava-v1.6-mistral-7b-hf",
-        torch_dtype=torch.float16,
+        model_id,
+        torch_dtype=torch.float16,``
         device_map=None 
     ).to('cuda:0').eval()
 
-    model.generation_config.pad_token_id = model.config.eos_token_id
+    model.generation_config.pad_tok`en_id = model.config.eos_token_id
     model.generation_config.eos_token_id = model.config.eos_token_id
 
     print(f"Model loaded on {next(model.parameters()).device}")
@@ -70,8 +73,10 @@ def describe_frames_group(frames, processor, model):
         )
 
     descriptions = [processor.decode(o, skip_special_tokens=True) for o in outputs]
-    combined_description = " ".join(descriptions)
-    return combined_description.strip()
+    
+    # combined_description = " ".join(descriptions)
+    # return combined_description.strip()
+    return descriptions
 
 # Save results
 def save_results(results, output_file="minute_descriptions.txt"):
@@ -88,7 +93,7 @@ def llava_main():
     frames_per_segment = extract_representative_frames(video_path)
 
     results = []
-    batch_size = 4
+    batch_size = 1
 
     for i in range(0, len(frames_per_segment), batch_size):
         batch_paths = frames_per_segment[i:i + batch_size]
@@ -106,6 +111,3 @@ def llava_main():
 
     save_results(results)
     print(f"Completed! Generated descriptions for {len(results)} minutes.")
-
-if __name__ == "__main__":
-    main()
