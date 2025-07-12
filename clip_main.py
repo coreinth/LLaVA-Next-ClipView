@@ -42,12 +42,6 @@ def chapter_detection(frame_map_file="segments/frame_map.csv", desc_file="scene_
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, preprocess = clip.load("ViT-L/14", device=device)
     print("CLIP model loaded successfully.")
-    
-    # Add this debug code to see what CLIP tokenizes
-    text = "The image is a simple black background with white text that reads \"Part 1: Why?\"."
-    tokens = clip.tokenize([text])
-    print(f"Tokenized text: {tokens}")
-    print(f"Decoded tokens: {clip.decode(tokens[0])}")
 
     # Frame Information
     frame_info = []

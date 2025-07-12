@@ -15,7 +15,7 @@ def to_python_type(obj):
 
 def main():
     # torch_check()
-    # llava_main()
+    llava_main()
     chapters, ranked_chapters = chapter_detection()
     
     with open("clip_chapter_results.json", "w", encoding="utf-8") as f:

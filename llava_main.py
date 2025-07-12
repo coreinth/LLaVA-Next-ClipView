@@ -9,6 +9,8 @@ import gc
 import shutil
 import time
 
+video_path = "30min_vid2.mp4"
+
 def seconds_to_mmss(seconds):
     minutes = int(seconds) // 60
     remaining_seconds = int(seconds) % 60
@@ -60,7 +62,7 @@ def extract_representative_frames(video_path, output_dir="segments"):
     result = subprocess.run([
         str(ffmpeg_path),
         "-i", video_path,
-        "-vf", "select='(gt(scene,0.35))',showinfo",
+        "-vf", "select='(gt(scene,0.4))',showinfo",
         "-vsync", "0",
         "-frame_pts", "1",
         f"{output_dir}/frame_%04d.png"
@@ -105,7 +107,7 @@ def describe_frames_group(frames, processor, model):
     with torch.inference_mode():
         outputs = model.generate(
             **inputs, 
-            max_new_tokens=50,
+            max_new_tokens=60,
             do_sample=False,
             num_beams=1,
             use_cache=True   
@@ -125,7 +127,6 @@ def llava_main():
     torch.cuda.empty_cache()
     processor, model = initialize_models()
 
-    video_path = "30min_vid.mp4"
     frames_per_segment = extract_representative_frames(video_path)
 
     results = []
