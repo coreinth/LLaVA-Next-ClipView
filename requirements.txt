@@ -5,4 +5,6 @@ matplotlib
 ftfy
 regex
 tqdm
+nltk==3.8.1
+rake_nltk
 git+https://github.com/openai/CLIP.git

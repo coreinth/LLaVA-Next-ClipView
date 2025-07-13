@@ -9,7 +9,7 @@ import gc
 import shutil
 import time
 
-video_path = "30min_vid2.mp4"
+video_path = "30min_vid3.mp4"
 
 def seconds_to_mmss(seconds):
     minutes = int(seconds) // 60

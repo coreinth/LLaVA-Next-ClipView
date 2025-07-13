@@ -1,7 +1,8 @@
 import json
 import csv
+from rake_nltk import Rake
 
-bert_file = "bert_chapter_results2.csv"
+bert_file = "bert_chapter_results3.csv"
 
 def load_clip_data(clip_file="clip_chapter_results.json"):
     """Load CLIP visual analysis results"""
@@ -134,23 +135,20 @@ def filter_chapters(chapters, min_gap_seconds=60, max_chapters=10):
     
     return filtered[:max_chapters]
 
-def generate_chapter_title(bert_transcript, max_words=4):
-    """Generate a chapter title from BERT transcript"""
+def generate_chapter_title(bert_transcript, max_words=8):
+    """ Extract keywords from BERT transcript for chapter title using Rake """
+    
     if not bert_transcript:
         return "Chapter"
     
-    words = bert_transcript.split()
-    important_words = []
-    skip_words = {'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'this', 'that', 'these', 'those', 'a', 'an'}
+    r = Rake()
+    r.extract_keywords_from_text(bert_transcript)
+    phrases = r.get_ranked_phrases()
     
-    for word in words[:15]:
-        clean_word = word.strip('.,!?";').lower()
-        if clean_word not in skip_words and len(clean_word) > 2:
-            important_words.append(word.strip('.,!?";'))
-            if len(important_words) >= max_words:
-                break
+    if phrases:
+        return " ".join(phrases[0].split()[:max_words])
     
-    return " ".join(important_words) if important_words else "Chapter"
+    return " ".join(bert_transcript.strip().split()[:max_words])
 
 def create_final_chapters():
     """Main function to create final chapter list"""
@@ -175,17 +173,10 @@ def create_final_chapters():
             "start": int(chapter['timestamp_seconds'])
         })
     
-    with open("compute_pi_chapters.json", "w") as f:
+    with open("RENAME_THIS.json", "w") as f:
         json.dump(youtube_chapters, f, indent=2)
     
     print(f"Created {len(youtube_chapters)} final chapters")
-    print("Results saved file: compute_pi_chapters.json")
+    print("Results saved file: RENAME_THIS.json")
     
     return youtube_chapters
-
-if __name__ == "__main__":
-    final_chapters = create_final_chapters()
-    
-    print("\n=== YOUTUBE CHAPTERS ===")
-    for chapter in final_chapters:
-        print(f'{{ "name": "{chapter["name"]}", "start": {seconds_to_mmss(chapter["start"])} }},')
